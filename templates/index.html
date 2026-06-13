@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayrollPro - Employee Management System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body { background: #020617; }
+.employee-card:hover { transform: translateY(-8px); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+}
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+.stat-card {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+    backdrop-filter: blur(10px);
+}
+</style>
+</head>
+<body class="text-white min-h-screen">
+
+<header class="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-lg border-b border-slate-800">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-r from-emerald-500 to-teal-600 p-3 rounded-xl">
+                <i class="fas fa-money-bill-wave text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl font-extrabold bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400 bg-clip-text text-transparent">PayrollPro</h1>
+                <p class="text-xs text-slate-400">Smart Payroll Management System</p>
+            </div>
+        </div>
+        <nav class="flex gap-2 bg-slate-950 p-2 rounded-xl border border-slate-800">
+            <button onclick="showTab('dashboard')" class="tab-btn px-4 py-2 rounded-lg bg-emerald-600 transition"><i class="fas fa-chart-line mr-2"></i>Dashboard</button>
+            <button onclick="showTab('employees')" class="tab-btn px-4 py-2 rounded-lg hover:bg-slate-800 transition"><i class="fas fa-users mr-2"></i>Employees</button>
+            <button onclick="showTab('attendance')" class="tab-btn px-4 py-2 rounded-lg hover:bg-slate-800 transition"><i class="fas fa-calendar-check mr-2"></i>Attendance</button>
+            <button onclick="showTab('leave')" class="tab-btn px-4 py-2 rounded-lg hover:bg-slate-800 transition"><i class="fas fa-umbrella-beach mr-2"></i>Leave</button>
+            <button onclick="showTab('payroll')" class="tab-btn px-4 py-2 rounded-lg hover:bg-slate-800 transition"><i class="fas fa-coins mr-2"></i>Payroll</button>
+            <button onclick="showTab('queries')" class="tab-btn px-4 py-2 rounded-lg hover:bg-slate-800 transition"><i class="fas fa-database mr-2"></i>Queries</button>
+        </nav>
+    </div>
+</header>
+
+<div class="max-w-7xl mx-auto p-6">
+<div id="notificationContainer"></div>
+
+<!-- Dashboard Tab -->
+<div id="dashboard" class="tab-content active">
+    <div class="bg-gradient-to-r from-emerald-900 via-teal-900 to-cyan-900 rounded-3xl p-10 mb-10">
+        <h2 class="text-5xl font-bold mb-4">📊 Payroll Dashboard</h2>
+        <p class="text-slate-200 text-lg mb-6">Manage employee salaries, attendance, leaves, and generate payslips all in one place.</p>
+        <button onclick="showTab('employees')" class="bg-white text-black px-6 py-3 rounded-xl font-bold hover:scale-105 transition">Manage Employees <i class="fas fa-arrow-right ml-2"></i></button>
+    </div>
+    
+    <div class="grid md:grid-cols-4 gap-6 mb-8">
+        <div class="stat-card bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+            <i class="fas fa-users text-emerald-400 text-3xl mb-3"></i>
+            <h3 class="text-slate-400 text-sm">Total Employees</h3>
+            <p class="text-3xl font-bold" id="statEmployees">0</p>
+        </div>
+        <div class="stat-card bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+            <i class="fas fa-building text-teal-400 text-3xl mb-3"></i>
+            <h3 class="text-slate-400 text-sm">Departments</h3>
+            <p class="text-3xl font-bold" id="statDepartments">0</p>
+        </div>
+        <div class="stat-card bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+            <i class="fas fa-rupee-sign text-cyan-400 text-3xl mb-3"></i>
+            <h3 class="text-slate-400 text-sm">Avg Salary</h3>
+            <p class="text-3xl font-bold" id="statAvgSalary">₹0</p>
+        </div>
+        <div class="stat-card bg-slate-900/50 rounded-2xl p-6 border border-slate-800">
+            <i class="fas fa-chart-line text-emerald-400 text-3xl mb-3"></i>
+            <h3 class="text-slate-400 text-sm">Monthly Payout</h3>
+            <p class="text-3xl font-bold" id="statPayout">₹0</p>
+        </div>
+    </div>
+    
+    <div class="bg-slate-900 rounded-2xl p-8 border border-slate-800">
+        <h3 class="text-xl font-bold mb-4">Recent Employees</h3>
+        <div id="recentEmployees" class="overflow-x-auto"></div>
+    </div>
+</div>
+
+<!-- Employees Tab -->
+<div id="employees" class="tab-content">
+    <div class="bg-slate-900 rounded-3xl p-8 border border-slate-800 mb-8">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-3xl font-bold">👥 Employee Management</h2>
+            <button onclick="showAddEmployeeModal()" class="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-3 rounded-xl font-bold hover:scale-105 transition">
+                <i class="fas fa-plus mr-2"></i>Add New Employee
+            </button>
+        </div>
+        <div id="employeesList" class="overflow-x-auto"></div>
+    </div>
+</div>
+
+<!-- Attendance Tab -->
+<div id="attendance" class="tab-content">
+    <div class="bg-slate-900 rounded-3xl p-8 border border-slate-800">
+        <h2 class="text-3xl font-bold mb-2">📅 Attendance Management</h2>
+        <p class="text-slate-400 mb-8">Mark attendance and salary will be automatically updated via trigger</p>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            <div class="bg-slate-800/50 rounded-2xl p-6">
+                <h3 class="text-xl font-bold mb-4">Mark Attendance</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-2 font-semibold">Select Employee</label>
+                        <select id="attendanceEmployee" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"></select>
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-semibold">Month</label>
+                        <input type="text" id="attendanceMonth" placeholder="e.g., January" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3">
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-semibold">Days Present</label>
+                        <input type="number" id="attendanceDays" placeholder="Days present" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3">
+                    </div>
+                    <button onclick="markAttendance()" class="w-full bg-emerald-600 px-6 py-3 rounded-xl font-bold hover:bg-emerald-700 transition">
+                        <i class="fas fa-save mr-2"></i>Mark Attendance (Trigger)
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-slate-800/50 rounded-2xl p-6">
+                <h3 class="text-xl font-bold mb-4">Attendance Records</h3>
+                <div id="attendanceRecords" class="max-h-96 overflow-y-auto">
+                    <p class="text-slate-400 text-center py-8">Select an employee to view records</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Leave Tab -->
+<div id="leave" class="tab-content">
+    <div class="bg-slate-900 rounded-3xl p-8 border border-slate-800">
+        <h2 class="text-3xl font-bold mb-2">🏖️ Leave Management</h2>
+        <p class="text-slate-400 mb-8">Leave requests are validated by trigger (max 10 days per year)</p>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            <div class="bg-slate-800/50 rounded-2xl p-6">
+                <h3 class="text-xl font-bold mb-4">Request Leave</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-2 font-semibold">Select Employee</label>
+                        <select id="leaveEmployee" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"></select>
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-semibold">Leave Type</label>
+                        <select id="leaveType" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3">
+                            <option value="Sick">Sick Leave</option>
+                            <option value="Casual">Casual Leave</option>
+                            <option value="Annual">Annual Leave</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-semibold">Leave Days</label>
+                        <input type="number" id="leaveDays" placeholder="Number of days" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3">
+                    </div>
+                    <button onclick="submitLeave()" class="w-full bg-amber-600 px-6 py-3 rounded-xl font-bold hover:bg-amber-700 transition">
+                        <i class="fas fa-paper-plane mr-2"></i>Submit Request
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-slate-800/50 rounded-2xl p-6">
+                <h3 class="text-xl font-bold mb-4">Leave History & Balance</h3>
+                <div id="leaveRecords" class="max-h-96 overflow-y-auto">
+                    <p class="text-slate-400 text-center py-8">Select an employee to view history</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payroll Tab -->
+<div id="payroll" class="tab-content">
+    <div class="bg-slate-900 rounded-3xl p-8 border border-slate-800 mb-8">
+        <h2 class="text-3xl font-bold mb-2">💰 Salary Management</h2>
+        <p class="text-slate-400 mb-8">Manage salaries, generate payslips, and calculate monthly payments</p>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            <div class="bg-slate-800/50 rounded-2xl p-6">
+                <h3 class="text-xl font-bold mb-4">Update Salary</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-2 font-semibold">Select Employee</label>
+                        <select id="salaryEmployee" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"></select>
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-semibold">Basic Salary</label>
+                        <input type="number" id="basicSalary" placeholder="Basic Salary" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3">
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-semibold">Allowances</label>
+                        <input type="number" id="allowances" placeholder="Allowances" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3">
+                    </div>
+                    <div>
+                        <label class="block mb-2 font-semibold">Deductions</label>
+                        <input type="number" id="deductions" placeholder="Deductions" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3">
+                    </div>
+                    <button onclick="updateSalary()" class="w-full bg-emerald-600 px-6 py-3 rounded-xl font-bold hover:bg-emerald-700 transition">
+                        <i class="fas fa-save mr-2"></i>Update Salary
+                    </button>
+                </div>
+            </div>
+            
+            <div class="bg-slate-800/50 rounded-2xl p-6">
+                <h3 class="text-xl font-bold mb-4">Generate Payslip</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block mb-2 font-semibold">Select Employee</label>
+                        <select id="payslipEmployee" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"></select>
+                    </div>
+                    <button onclick="calculateSalaryProc()" class="w-full bg-blue-600 px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition">
+                        <i class="fas fa-calculator mr-2"></i>Calculate Monthly Salary
+                    </button>
+                    <button onclick="generatePayslip()" class="w-full bg-purple-600 px-6 py-3 rounded-xl font-bold hover:bg-purple-700 transition">
+                        <i class="fas fa-file-invoice mr-2"></i>Generate Payslip
+                    </button>
+                    <div id="payslipResult" class="mt-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Queries Tab -->
+<div id="queries" class="tab-content">
+    <div class="bg-slate-900 rounded-3xl p-8 border border-slate-800">
+        <h2 class="text-3xl font-bold mb-8">📋 SQL Query Analyzer</h2>
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-slate-800/50 rounded-2xl p-6">
+                <h3 class="text-xl font-bold mb-4">Analytical Queries</h3>
+                <select id="querySelector" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3 mb-4">
+                    <option value="1">1. All Employees</option>
+                    <option value="2">2. Employees by Department</option>
+                    <option value="3">3. Employee + Salary Details</option>
+                    <option value="4">4. Full Details (3 Tables)</option>
+                    <option value="5">5. Employee Count per Department</option>
+                    <option value="6">6. Departments Avg Salary > 50000</option>
+                    <option value="7">7. Employees Above Average Salary</option>
+                    <option value="8">8. Employees Earning More Than Specific Employee</option>
+                    <option value="9">9. Employees Without Salary Records</option>
+                    <option value="10">10. Departments With No Employees</option>
+                </select>
+                <div id="queryParams" class="mb-4"></div>
+                <button onclick="executeQuery()" class="w-full bg-indigo-600 px-6 py-3 rounded-xl font-bold hover:bg-indigo-700 transition">
+                    <i class="fas fa-play mr-2"></i>Execute Query
+                </button>
+            </div>
+            <div class="bg-slate-800/50 rounded-2xl p-6">
+                <h3 class="text-xl font-bold mb-4">Statistics</h3>
+                <div id="statsInfo">
+                    <p class="text-slate-400">Select a query and click Execute to see results</p>
+                </div>
+            </div>
+        </div>
+        <div class="bg-slate-800/50 rounded-2xl p-6">
+            <h3 class="text-xl font-bold mb-4">Query Results</h3>
+            <div id="queryResults" class="overflow-x-auto">
+                <p class="text-slate-400 text-center py-8">Select a query and click Execute to view results</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<!-- Employee Modal -->
+<div id="employeeModal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50">
+    <div class="bg-slate-900 rounded-2xl p-8 max-w-md w-full mx-4 border border-slate-700">
+        <h3 id="employeeModalTitle" class="text-2xl font-bold mb-4">Add New Employee</h3>
+        <input type="hidden" id="editEmployeeId">
+        <div class="space-y-4">
+            <input type="text" id="employeeName" placeholder="Full Name" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3">
+            <select id="employeeDept" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3"></select>
+            <input type="text" id="employeeDesignation" placeholder="Designation" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-3">
+        </div>
+        <div class="flex gap-3 mt-6">
+            <button onclick="saveEmployee()" class="flex-1 bg-emerald-600 px-6 py-3 rounded-xl font-bold hover:bg-emerald-700 transition">Save</button>
+            <button onclick="closeEmployeeModal()" class="flex-1 bg-slate-700 px-6 py-3 rounded-xl font-bold hover:bg-slate-600 transition">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API_BASE = 'http://localhost:5000/api';
+
+function showNotification(message, type = 'success') {
+    const container = document.getElementById('notificationContainer');
+    const notification = document.createElement('div');
+    notification.className = `notification bg-${type === 'success' ? 'emerald' : 'red'}-600 text-white px-6 py-3 rounded-lg shadow-lg mb-3`;
+    notification.innerHTML = `<div class="flex items-center gap-3"><i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i><span>${message}</span></div>`;
+    container.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+}
+
+function showTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.getElementById(tabId).classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(btn => { 
+        btn.classList.remove('bg-emerald-600'); 
+        btn.classList.add('hover:bg-slate-800'); 
+    });
+    if(event && event.target && event.target.classList && event.target.classList.contains('tab-btn')) { 
+        event.target.classList.add('bg-emerald-600'); 
+        event.target.classList.remove('hover:bg-slate-800'); 
+    }
+    
+    if(tabId === 'dashboard') loadDashboardStats();
+    if(tabId === 'employees') loadEmployees();
+    if(tabId === 'attendance') { loadEmployeeDropdowns(); loadAttendanceRecords(); }
+    if(tabId === 'leave') { loadEmployeeDropdowns(); loadLeaveRecords(); }
+    if(tabId === 'payroll') { loadEmployeeDropdowns(); }
+}
+
+async function loadDashboardStats() {
+    try {
+        const response = await fetch(`${API_BASE}/dashboard/stats`);
+        const result = await response.json();
+        if(result.success) {
+            document.getElementById('statEmployees').textContent = result.data.total_employees;
+            document.getElementById('statDepartments').textContent = result.data.total_departments;
+            document.getElementById('statAvgSalary').textContent = `₹${result.data.avg_salary.toFixed(2)}`;
+            document.getElementById('statPayout').textContent = `₹${result.data.total_payout.toFixed(2)}`;
+        }
+    } catch(error) { console.error(error); }
+    
+    // Load recent employees
+    try {
+        const response = await fetch(`${API_BASE}/employees`);
+        const result = await response.json();
+        if(result.success && result.data) {
+            const recent = result.data.slice(0, 5);
+            document.getElementById('recentEmployees').innerHTML = `
+                <table class="w-full">
+                    <thead class="border-b border-slate-700">
+                        <tr><th class="text-left py-3">ID</th><th class="text-left py-3">Name</th><th class="text-left py-3">Department</th><th class="text-left py-3">Designation</th></tr>
+                    </thead>
+                    <tbody>
+                        ${recent.map(emp => `<tr class="border-b border-slate-800"><td class="py-3">${emp.employee_id}</td><td class="py-3">${emp.name}</td><td class="py-3">${emp.department_name || '-'}</td><td class="py-3">${emp.designation || '-'}</td></tr>`).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+    } catch(error) { console.error(error); }
+}
+
+async function loadEmployees() {
+    try {
+        const response = await fetch(`${API_BASE}/employees`);
+        const result = await response.json();
+        if(result.success && result.data) {
+            if(result.data.length === 0) {
+                document.getElementById('employeesList').innerHTML = '<p class="text-center text-slate-400 py-8">No employees found.</p>';
+            } else {
+                document.getElementById('employeesList').innerHTML = `
+                    <table class="w-full">
+                        <thead class="border-b border-slate-700">
+                            <tr><th class="text-left py-3">ID</th><th class="text-left py-3">Name</th><th class="text-left py-3">Department</th><th class="text-left py-3">Designation</th><th class="text-left py-3">Actions</th></tr>
+                        </thead>
+                        <tbody>
+                            ${result.data.map(emp => `
+                                <tr class="border-b border-slate-800">
+                                    <td class="py-3">${emp.employee_id}</td>
+                                    <td class="py-3">${emp.name}</td>
+                                    <td class="py-3">${emp.department_name || '-'}</td>
+                                    <td class="py-3">${emp.designation || '-'}</td>
+                                    <td class="py-3">
+                                        <button onclick='editEmployee(${emp.employee_id}, "${emp.name}", ${emp.department_id || 0}, "${emp.designation || ""}")' class="text-blue-400 hover:text-blue-300 mr-3"><i class="fas fa-edit"></i></button>
+                                        <button onclick="deleteEmployee(${emp.employee_id})" class="text-red-400 hover:text-red-300"><i class="fas fa-trash"></i></button>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+        }
+    } catch(error) { showNotification('Error loading employees', 'error'); }
+}
+
+async function loadEmployeeDropdowns() {
+    try {
+        const response = await fetch(`${API_BASE}/employees`);
+        const result = await response.json();
+        if(result.success && result.data) {
+            const options = result.data.map(emp => `<option value="${emp.employee_id}">${emp.name}</option>`).join('');
+            document.getElementById('attendanceEmployee').innerHTML = options;
+            document.getElementById('leaveEmployee').innerHTML = options;
+            document.getElementById('salaryEmployee').innerHTML = options;
+            document.getElementById('payslipEmployee').innerHTML = options;
+        }
+        
+        const deptResponse = await fetch(`${API_BASE}/departments`);
+        const deptResult = await deptResponse.json();
+        if(deptResult.success && deptResult.data) {
+            const deptOptions = deptResult.data.map(dept => `<option value="${dept.department_id}">${dept.department_name}</option>`).join('');
+            document.getElementById('employeeDept').innerHTML = deptOptions;
+        }
+    } catch(error) { console.error(error); }
+}
+
+async function saveEmployee() {
+    const empId = document.getElementById('editEmployeeId').value;
+    const name = document.getElementById('employeeName').value;
+    const dept_id = document.getElementById('employeeDept').value;
+    const designation = document.getElementById('employeeDesignation').value;
+    
+    if(!name || !dept_id) { showNotification('Name and department are required', 'error'); return; }
+    
+    try {
+        let response;
+        if(empId) {
+            response = await fetch(`${API_BASE}/employees/${empId}`, {
+                method: 'PUT', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, department_id: parseInt(dept_id), designation})
+            });
+        } else {
+            response = await fetch(`${API_BASE}/employees`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({name, department_id: parseInt(dept_id), designation})
+            });
+        }
+        const result = await response.json();
+        if(result.success) {
+            showNotification(empId ? 'Employee updated' : 'Employee created');
+            closeEmployeeModal();
+            loadEmployees();
+            loadDashboardStats();
+            loadEmployeeDropdowns();
+        } else { showNotification(result.error, 'error'); }
+    } catch(error) { showNotification('Error saving employee', 'error'); }
+}
+
+async function deleteEmployee(empId) {
+    if(confirm('Delete this employee and all related records?')) {
+        const response = await fetch(`${API_BASE}/employees/${empId}`, {method: 'DELETE'});
+        const result = await response.json();
+        if(result.success) {
+            showNotification('Employee deleted');
+            loadEmployees();
+            loadDashboardStats();
+            loadEmployeeDropdowns();
+        } else { showNotification(result.error, 'error'); }
+    }
+}
+
+async function markAttendance() {
+    const employee_id = document.getElementById('attendanceEmployee').value;
+    const month = document.getElementById('attendanceMonth').value;
+    const days_present = document.getElementById('attendanceDays').value;
+    
+    if(!employee_id || !month || !days_present) {
+        showNotification('Please fill all fields', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/attendance`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({employee_id: parseInt(employee_id), month, days_present: parseInt(days_present)})
+        });
+        const result = await response.json();
+        if(result.success) {
+            showNotification('Attendance marked! Salary updated via trigger', 'success');
+            document.getElementById('attendanceMonth').value = '';
+            document.getElementById('attendanceDays').value = '';
+            loadAttendanceRecords();
+        } else { showNotification(result.error, 'error'); }
+    } catch(error) { showNotification('Error marking attendance', 'error'); }
+}
+
+async function loadAttendanceRecords() {
+    const empId = document.getElementById('attendanceEmployee')?.value;
+    if(!empId) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}/attendance/employee/${empId}`);
+        const result = await response.json();
+        if(result.success && result.data && result.data.length > 0) {
+            document.getElementById('attendanceRecords').innerHTML = `
+                <table class="w-full text-sm">
+                    <thead class="border-b border-slate-700"><tr><th class="text-left py-2">Month</th><th class="text-left py-2">Days Present</th></tr></thead>
+                    <tbody>${result.data.map(att => `<tr><td class="py-2">${att.month}</td><td class="py-2">${att.days_present}</td></tr>`).join('')}</tbody>
+                </table>
+            `;
+        } else {
+            document.getElementById('attendanceRecords').innerHTML = '<p class="text-center text-slate-400 py-4">No attendance records found</p>';
+        }
+    } catch(error) { console.error(error); }
+}
+
+async function submitLeave() {
+    const employee_id = document.getElementById('leaveEmployee').value;
+    const leave_days = document.getElementById('leaveDays').value;
+    const leave_type = document.getElementById('leaveType').value;
+    
+    if(!employee_id || !leave_days) {
+        showNotification('Please select employee and enter leave days', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/leaves`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({employee_id: parseInt(employee_id), leave_days: parseInt(leave_days), leave_type})
+        });
+        const result = await response.json();
+        if(result.success) {
+            showNotification('Leave request submitted', 'success');
+            document.getElementById('leaveDays').value = '';
+            loadLeaveRecords();
+        } else { showNotification(result.error, 'error'); }
+    } catch(error) { showNotification('Error submitting leave', 'error'); }
+}
+
+async function loadLeaveRecords() {
+    const empId = document.getElementById('leaveEmployee')?.value;
+    if(!empId) return;
+    
+    try {
+        const response = await fetch(`${API_BASE}/leaves/employee/${empId}`);
+        const result = await response.json();
+        if(result.success) {
+            const remaining = 10 - (result.total_leaves || 0);
+            if(result.data && result.data.length > 0) {
+                document.getElementById('leaveRecords').innerHTML = `
+                    <div class="mb-4 p-3 bg-slate-700 rounded-lg">
+                        <p><strong>Total Leaves Taken:</strong> ${result.total_leaves || 0} days</p>
+                        <p><strong>Remaining:</strong> ${remaining} days</p>
+                    </div>
+                    <table class="w-full text-sm">
+                        <thead class="border-b border-slate-700"><tr><th class="text-left py-2">Type</th><th class="text-left py-2">Days</th><th class="text-left py-2">Date</th></tr></thead>
+                        <tbody>${result.data.map(leave => `<tr><td class="py-2">${leave.leave_type}</td><td class="py-2">${leave.leave_days}</td><td class="py-2">${new Date().toLocaleDateString()}</td></tr>`).join('')}</tbody>
+                    </table>
+                `;
+            } else {
+                document.getElementById('leaveRecords').innerHTML = `<div class="mb-4 p-3 bg-slate-700 rounded-lg"><p><strong>Remaining:</strong> 10 days</p></div><p class="text-center text-slate-400 py-4">No leave records found</p>`;
+            }
+        }
+    } catch(error) { console.error(error); }
+}
+
+async function updateSalary() {
+    const empId = document.getElementById('salaryEmployee').value;
+    const basic = parseFloat(document.getElementById('basicSalary').value);
+    const allowances = parseFloat(document.getElementById('allowances').value);
+    const deductions = parseFloat(document.getElementById('deductions').value);
+    
+    if(!empId || !basic) {
+        showNotification('Please select employee and enter basic salary', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE}/salaries/${empId}`, {
+            method: 'PUT', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({basic_salary: basic, allowances: allowances || 0, deductions: deductions || 0})
+        });
+        const result = await response.json();
+        if(result.success) {
+            showNotification('Salary updated successfully', 'success');
+            document.getElementById('basicSalary').value = '';
+            document.getElementById('allowances').value = '';
+            document.getElementById('deductions').value = '';
+        } else { showNotification(result.error, 'error'); }
+    } catch(error) { showNotification('Error updating salary', 'error'); }
+}
+
+async function calculateSalaryProc() {
+    const empId = document.getElementById('payslipEmployee').value;
+    if(!empId) { showNotification('Please select an employee', 'error'); return; }
+    
+    try {
+        const response = await fetch(`${API_BASE}/calculate-salary/${empId}`, {method: 'POST'});
+        const result = await response.json();
+        if(result.success) {
+            showNotification('Salary calculated successfully', 'success');
+        } else { showNotification(result.error, 'error'); }
+    } catch(error) { showNotification('Error', 'error'); }
+}
+
+async function generatePayslip() {
+    const empId = document.getElementById('payslipEmployee').value;
+    if(!empId) { showNotification('Please select an employee', 'error'); return; }
+    
+    try {
+        const response = await fetch(`${API_BASE}/generate-payslip/${empId}`);
+        const result = await response.json();
+        if(result.success && result.data && result.data.length > 0) {
+            const p = result.data[0];
+            document.getElementById('payslipResult').innerHTML = `
+                <div class="mt-4 p-4 bg-gradient-to-r from-emerald-900 to-teal-900 rounded-xl">
+                    <h4 class="font-bold text-lg mb-3">Payslip for ${p.name}</h4>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <p><strong>Department:</strong> ${p.department_name}</p>
+                        <p><strong>Designation:</strong> ${p.designation}</p>
+                        <p><strong>Basic Salary:</strong> ₹${p.basic_salary}</p>
+                        <p><strong>Allowances:</strong> ₹${p.allowances}</p>
+                        <p><strong>Deductions:</strong> ₹${p.deductions}</p>
+                        <p class="text-emerald-400"><strong>Net Salary:</strong> ₹${p.net_salary}</p>
+                        <p><strong>Days Present:</strong> ${p.days_present || 'N/A'}</p>
+                    </div>
+                </div>
+            `;
+        } else {
+            document.getElementById('payslipResult').innerHTML = '<p class="text-center text-slate-400 mt-4">No data found</p>';
+        }
+    } catch(error) { showNotification('Error generating payslip', 'error'); }
+}
+
+async function executeQuery() {
+    const queryId = document.getElementById('querySelector').value;
+    let url = `${API_BASE}/queries/${queryId}`;
+    
+    if(queryId === '2') {
+        const deptName = prompt('Enter Department Name (IT, HR, Finance, Marketing):');
+        if(!deptName) return;
+        url += `?department_name=${deptName}`;
+    } else if(queryId === '8') {
+        const empName = prompt('Enter Employee Name (e.g., John Doe):');
+        if(!empName) return;
+        url += `?employee_name=${empName}`;
+    }
+    
+    try {
+        const response = await fetch(url);
+        const result = await response.json();
+        if(result.success && result.data) {
+            if(result.data.length === 0) {
+                document.getElementById('queryResults').innerHTML = '<p class="text-center text-slate-400 py-8">No results found.</p>';
+                document.getElementById('statsInfo').innerHTML = '<p class="text-slate-400">Total records: 0</p>';
+            } else {
+                const columns = Object.keys(result.data[0]);
+                document.getElementById('queryResults').innerHTML = `
+                    <table class="w-full text-sm">
+                        <thead class="border-b border-slate-700">
+                            <tr>${columns.map(col => `<th class="text-left py-2 px-3">${col}</th>`).join('')}</tr>
+                        </thead>
+                        <tbody>
+                            ${result.data.map(row => `<tr class="border-b border-slate-800">${columns.map(col => `<td class="py-2 px-3">${row[col] !== null ? row[col] : '-'}<td>`).join('')}</tr>`).join('')}
+                        </tbody>
+                    </table>
+                `;
+                document.getElementById('statsInfo').innerHTML = `<p class="text-slate-400">Total records: ${result.data.length}</p>`;
+            }
+        } else {
+            document.getElementById('queryResults').innerHTML = `<p class="text-center text-red-400 py-8">Error: ${result.error || 'Query failed'}</p>`;
+        }
+    } catch(error) {
+        document.getElementById('queryResults').innerHTML = '<p class="text-center text-red-400 py-8">Connection error</p>';
+    }
+}
+
+function editEmployee(id, name, deptId, designation) {
+    document.getElementById('employeeModalTitle').textContent = 'Edit Employee';
+    document.getElementById('editEmployeeId').value = id;
+    document.getElementById('employeeName').value = name;
+    document.getElementById('employeeDept').value = deptId;
+    document.getElementById('employeeDesignation').value = designation;
+    document.getElementById('employeeModal').style.display = 'flex';
+}
+
+function showAddEmployeeModal() {
+    document.getElementById('employeeModalTitle').textContent = 'Add New Employee';
+    document.getElementById('editEmployeeId').value = '';
+    document.getElementById('employeeName').value = '';
+    document.getElementById('employeeDept').value = '';
+    document.getElementById('employeeDesignation').value = '';
+    document.getElementById('employeeModal').style.display = 'flex';
+}
+
+function closeEmployeeModal() {
+    document.getElementById('employeeModal').style.display = 'none';
+}
+
+// Event listeners for dropdown changes
+document.addEventListener('DOMContentLoaded', () => {
+    loadDashboardStats();
+    loadEmployeeDropdowns();
+    
+    document.getElementById('attendanceEmployee')?.addEventListener('change', loadAttendanceRecords);
+    document.getElementById('leaveEmployee')?.addEventListener('change', loadLeaveRecords);
+    document.getElementById('salaryEmployee')?.addEventListener('change', async () => {
+        const empId = document.getElementById('salaryEmployee').value;
+        if(empId) {
+            const response = await fetch(`${API_BASE}/employees/${empId}`);
+            const result = await response.json();
+            if(result.success && result.data && result.data.basic_salary) {
+                document.getElementById('basicSalary').value = result.data.basic_salary;
+                document.getElementById('allowances').value = result.data.allowances || 0;
+                document.getElementById('deductions').value = result.data.deductions || 0;
+            }
+        }
+    });
+});
+</script>
+</body>
+</html>
