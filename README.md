@@ -1,4 +1,3 @@
-# Payroll_Management
 # Payroll Management System
 
 A complete Payroll Management System with Flask backend, MySQL database, and modern web interface.
