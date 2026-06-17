@@ -49,14 +49,3 @@ Pavan Bhat - @pavan18ai-tech
 
 Live Demo
 Visit: https://github.com/pavan18ai-tech/Payroll_Management
-
-## Push to GitHub:
-
-```powershell
-cd D:\Payroll_system
-echo "# Payroll Management System" > README.md
-echo "" >> README.md
-echo "A complete Payroll Management System with Flask, MySQL, triggers, and stored procedures." >> README.md
-git add README.md
-git commit -m "Add README"
-git push origin main
